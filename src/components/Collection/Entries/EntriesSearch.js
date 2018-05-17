@@ -7,6 +7,7 @@ import {
   searchEntries as actionSearchEntries,
   clearSearch as actionClearSearch
 } from 'Actions/search';
+import Cursor from 'ValueObjects/Cursor';
 import Entries from './Entries';
 
 class EntriesSearch extends React.Component {
@@ -36,15 +37,30 @@ class EntriesSearch extends React.Component {
     this.props.clearSearch();
   }
 
-  handleLoadMore = (page) => {
-    const { searchTerm, searchEntries } = this.props;
-    if (!isNaN(page)) searchEntries(searchTerm, page);
+  getCursor = () => {
+    const { page } = this.props;
+    return Cursor.create({
+      actions: isNaN(page) ? [] : ["append_next"],
+    });
+  };
+
+  handleCursorActions = (action) => {
+    const { page, searchTerm, searchEntries } = this.props;
+    if (action === "append_next") {
+      const nextPage = page + 1;
+      searchEntries(searchTerm, nextPage);
+    }
   };
 
   render () {
     const { collections, entries, publicFolder, page, isFetching } = this.props;
     return (
       <Entries
+        cursor={Cursor.create({
+          actions: isNaN(page) ? [] : ["append_next"],
+          data: { page },
+        })}
+        handleCursorActions={this.handleCursorActions}
         collections={collections}
         entries={entries}
         publicFolder={publicFolder}
