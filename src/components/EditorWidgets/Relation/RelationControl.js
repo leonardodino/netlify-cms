@@ -33,33 +33,31 @@ class RelationControl extends Component {
 
   static defaultProps = {
     value: '',
+    renderInputComponent(props){
+      return <input {...props}/>
+    },
     onSuggestionSelected(event, {suggestion}){
-      console.info(`RelationControl::onSuggestionSelected(${event}, ${{suggestion}})`)
       const value = this.getSuggestionValue(suggestion);
       this.props.onChange(value, {
         [this.props.field.get('collection')]: {[value]: suggestion.data},
       });
     },
     onSuggestionsFetchRequested({value}){
-      console.info(`RelationControl::onSuggestionsFetchRequested(${value})`)
-      if (value.length < 2) return;
+      // if (value.length < 2) return;
       const {field} = this.props;
       const collection = field.get('collection');
       const searchFields = field.get('searchFields').toJS();
       this.props.query(this.controlID, collection, searchFields, value);
     },
     onSuggestionsClearRequested(){
-      console.info(`RelationControl::onSuggestionsClearRequested()`)
       this.props.clearSearch()
     },
     getSuggestionValue(suggestion){
-      console.info(`RelationControl::getSuggestionValue(${suggestion})`)
       const {field} = this.props;
       const valueField = field.get('valueField');
       return suggestion.data[valueField];
     },
     renderSuggestion(suggestion){
-      console.info(`RelationControl::renderSuggestion(${suggestion})`)
       const {field} = this.props;
       const valueField = field.get('displayFields') || field.get('valueField');
       if (List.isList(valueField)) {
@@ -72,7 +70,6 @@ class RelationControl extends Component {
       return <span>{new String(suggestion.data[valueField])}</span>;
     },
     isValid(){
-      console.info(`RelationControl::isValid()`)
       return true
     },
   }
@@ -82,6 +79,9 @@ class RelationControl extends Component {
     this.controlID = uuid()
     this.didInitialSearch = false
 
+    this.renderInputComponent = (...args) => (
+      this.props.renderInputComponent.apply(this, args)
+    )
     this.onSuggestionSelected = (...args) => (
       this.props.onSuggestionSelected.apply(this, args)
     )
