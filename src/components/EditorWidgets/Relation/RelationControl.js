@@ -2,15 +2,10 @@ import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import Autosuggest from 'react-autosuggest';
 import uuid from 'uuid/v4';
-import { List, Map } from 'immutable';
+import { List } from 'immutable';
 import { connect } from 'react-redux';
-import { debounce } from 'lodash';
 import { query, clearSearch } from 'Actions/search';
 import { Loader } from 'UI';
-
-function escapeRegexCharacters(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
 
 class RelationControl extends Component {
   static propTypes = {
@@ -28,17 +23,80 @@ class RelationControl extends Component {
     classNameWrapper: PropTypes.string.isRequired,
     setActiveStyle: PropTypes.func.isRequired,
     setInactiveStyle: PropTypes.func.isRequired,
+    onSuggestionSelected: PropTypes.func.isRequired,
+    onSuggestionsFetchRequested: PropTypes.func.isRequired,
+    onSuggestionsClearRequested: PropTypes.func.isRequired,
+    getSuggestionValue: PropTypes.func.isRequired,
+    renderSuggestion: PropTypes.func.isRequired,
+    isValid: PropTypes.func.isRequired,
   };
 
   static defaultProps = {
     value: '',
-  };
-
-  constructor(props, ctx) {
-    super(props, ctx);
-    this.controlID = uuid();
-    this.didInitialSearch = false;
+    onSuggestionSelected(event, {suggestion}){
+      const value = this.getSuggestionValue(suggestion);
+      this.props.onChange(value, {
+        [this.props.field.get('collection')]: {[value]: suggestion.data},
+      });
+    },
+    onSuggestionsFetchRequested({value}){
+      if (value.length < 2) return;
+      const {field} = this.props;
+      const collection = field.get('collection');
+      const searchFields = field.get('searchFields').toJS();
+      this.props.query(this.controlID, collection, searchFields, value);
+    },
+    onSuggestionsClearRequested(){
+      this.props.clearSearch()
+    },
+    getSuggestionValue(suggestion){
+      const {field} = this.props;
+      const valueField = field.get('valueField');
+      return suggestion.data[valueField];
+    },
+    renderSuggestion(suggestion){
+      const {field} = this.props;
+      const valueField = field.get('displayFields') || field.get('valueField');
+      if (List.isList(valueField)) {
+        return (
+          <span>
+            {valueField.toJS().map(key => <span key={key}>{new String(suggestion.data[key])}{' '}</span>)}
+          </span>
+        );
+      }
+      return <span>{new String(suggestion.data[valueField])}</span>;
+    },
+    isValid(){
+      return true
+    },
   }
+
+  controlID = uuid()
+  didInitialSearch = false
+
+  onSuggestionSelected = (...args) => {
+    this.props.onSuggestionSelected.apply(this, args)
+  }
+  onSuggestionsFetchRequested = (...args) => {
+    this.props.onSuggestionsFetchRequested.apply(this, args)
+  }
+  onSuggestionsClearRequested = (...args) => {
+    this.props.onSuggestionsClearRequested.apply(this, args)
+  }
+  getSuggestionValue = (...args) => {
+    this.props.getSuggestionValue.apply(this, args)
+  }
+  renderSuggestion = (...args) => {
+    this.props.renderSuggestion.apply(this, args)
+  }
+  isValid = (...args) => {
+    this.props.isValid.apply(this, args)
+  }
+
+
+  onChange = (event, { newValue }) => {
+    this.props.onChange(newValue);
+  };
 
   componentDidMount() {
     const { value, field } = this.props;
@@ -60,46 +118,6 @@ class RelationControl extends Component {
       }
     }
   }
-
-  onChange = (event, { newValue }) => {
-    this.props.onChange(newValue);
-  };
-
-  onSuggestionSelected = (event, { suggestion }) => {
-    const value = this.getSuggestionValue(suggestion);
-    this.props.onChange(value, { [this.props.field.get('collection')]: { [value]: suggestion.data } });
-  };
-
-  onSuggestionsFetchRequested = debounce(({ value }) => {
-    if (value.length < 2) return;
-    const { field } = this.props;
-    const collection = field.get('collection');
-    const searchFields = field.get('searchFields').toJS();
-    this.props.query(this.controlID, collection, searchFields, value);
-  }, 500);
-
-  onSuggestionsClearRequested = () => {
-    this.props.clearSearch();
-  };
-
-  getSuggestionValue = (suggestion) => {
-    const { field } = this.props;
-    const valueField = field.get('valueField');
-    return suggestion.data[valueField];
-  };
-
-  renderSuggestion = (suggestion) => {
-    const { field } = this.props;
-    const valueField = field.get('displayFields') || field.get('valueField');
-    if (List.isList(valueField)) {
-      return (
-        <span>
-          {valueField.toJS().map(key => <span key={key}>{new String(suggestion.data[key])}{' '}</span>)}
-        </span>
-      );
-    }
-    return <span>{new String(suggestion.data[valueField])}</span>;
-  };
 
   render() {
     const {
