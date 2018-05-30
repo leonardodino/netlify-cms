@@ -29,12 +29,20 @@ class RelationControl extends Component {
     getSuggestionValue: PropTypes.func.isRequired,
     renderSuggestion: PropTypes.func.isRequired,
     isValid: PropTypes.func.isRequired,
+    renderInputComponent: PropTypes.func.isRequired,
+    shouldRenderSuggestions: PropTypes.func.isRequired,
   };
 
   static defaultProps = {
     value: '',
     renderInputComponent(props){
       return <input {...props}/>
+    },
+    valueToFieldString(value){
+      return String(value)
+    },
+    shouldRenderSuggestions(value){
+      return value.trim().length
     },
     onSuggestionSelected(event, {suggestion}){
       const value = this.getSuggestionValue(suggestion);
@@ -81,6 +89,12 @@ class RelationControl extends Component {
 
     this.renderInputComponent = (...args) => (
       this.props.renderInputComponent.apply(this, args)
+    )
+    this.valueToFieldString = (...args) => (
+      this.props.valueToFieldString.apply(this, args)
+    )
+    this.shouldRenderSuggestions = (...args) => (
+      this.props.shouldRenderSuggestions.apply(this, args)
     )
     this.onSuggestionSelected = (...args) => (
       this.props.onSuggestionSelected.apply(this, args)
@@ -135,12 +149,12 @@ class RelationControl extends Component {
       queryHits,
       classNameWrapper,
       setActiveStyle,
-      setInactiveStyle
+      setInactiveStyle,
     } = this.props;
 
     const inputProps = {
       placeholder: '',
-      value: value || '',
+      value: this.valueToFieldString(value || ''),
       onChange: this.onChange,
       id: forID,
       className: classNameWrapper,
@@ -154,7 +168,8 @@ class RelationControl extends Component {
       <div>
         <Autosuggest
           suggestions={suggestions}
-          renderInputComponent={renderInputComponent}
+          renderInputComponent={this.renderInputComponent}
+          shouldRenderSuggestions={this.shouldRenderSuggestions}
           onSuggestionsFetchRequested={this.onSuggestionsFetchRequested}
           onSuggestionsClearRequested={this.onSuggestionsClearRequested}
           onSuggestionSelected={this.onSuggestionSelected}
