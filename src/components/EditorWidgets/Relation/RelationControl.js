@@ -34,12 +34,14 @@ class RelationControl extends Component {
   static defaultProps = {
     value: '',
     onSuggestionSelected(event, {suggestion}){
+      console.info(`RelationControl::onSuggestionSelected(${event}, ${{suggestion}})`)
       const value = this.getSuggestionValue(suggestion);
       this.props.onChange(value, {
         [this.props.field.get('collection')]: {[value]: suggestion.data},
       });
     },
     onSuggestionsFetchRequested({value}){
+      console.info(`RelationControl::onSuggestionsFetchRequested(${value})`)
       if (value.length < 2) return;
       const {field} = this.props;
       const collection = field.get('collection');
@@ -47,14 +49,17 @@ class RelationControl extends Component {
       this.props.query(this.controlID, collection, searchFields, value);
     },
     onSuggestionsClearRequested(){
+      console.info(`RelationControl::onSuggestionsClearRequested()`)
       this.props.clearSearch()
     },
     getSuggestionValue(suggestion){
+      console.info(`RelationControl::getSuggestionValue(${suggestion})`)
       const {field} = this.props;
       const valueField = field.get('valueField');
       return suggestion.data[valueField];
     },
     renderSuggestion(suggestion){
+      console.info(`RelationControl::renderSuggestion(${suggestion})`)
       const {field} = this.props;
       const valueField = field.get('displayFields') || field.get('valueField');
       if (List.isList(valueField)) {
@@ -67,32 +72,35 @@ class RelationControl extends Component {
       return <span>{new String(suggestion.data[valueField])}</span>;
     },
     isValid(){
+      console.info(`RelationControl::isValid()`)
       return true
     },
   }
+  constructor(props, ctx){
+    super(props, ctx)
 
-  controlID = uuid()
-  didInitialSearch = false
+    this.controlID = uuid()
+    this.didInitialSearch = false
 
-  onSuggestionSelected = (...args) => {
-    this.props.onSuggestionSelected.apply(this, args)
+    this.onSuggestionSelected = (...args) => (
+      this.props.onSuggestionSelected.apply(this, args)
+    )
+    this.onSuggestionsFetchRequested = (...args) => (
+      this.props.onSuggestionsFetchRequested.apply(this, args)
+    )
+    this.onSuggestionsClearRequested = (...args) => (
+      this.props.onSuggestionsClearRequested.apply(this, args)
+    )
+    this.getSuggestionValue = (...args) => (
+      this.props.getSuggestionValue.apply(this, args)
+    )
+    this.renderSuggestion = (...args) => (
+      this.props.renderSuggestion.apply(this, args)
+    )
+    this.isValid = (...args) => (
+      this.props.isValid.apply(this, args)
+    )
   }
-  onSuggestionsFetchRequested = (...args) => {
-    this.props.onSuggestionsFetchRequested.apply(this, args)
-  }
-  onSuggestionsClearRequested = (...args) => {
-    this.props.onSuggestionsClearRequested.apply(this, args)
-  }
-  getSuggestionValue = (...args) => {
-    this.props.getSuggestionValue.apply(this, args)
-  }
-  renderSuggestion = (...args) => {
-    this.props.renderSuggestion.apply(this, args)
-  }
-  isValid = (...args) => {
-    this.props.isValid.apply(this, args)
-  }
-
 
   onChange = (event, { newValue }) => {
     this.props.onChange(newValue);
