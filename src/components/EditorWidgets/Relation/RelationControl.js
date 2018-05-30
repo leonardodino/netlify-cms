@@ -154,6 +154,7 @@ class RelationControl extends Component {
       <div>
         <Autosuggest
           suggestions={suggestions}
+          renderInputComponent={renderInputComponent}
           onSuggestionsFetchRequested={this.onSuggestionsFetchRequested}
           onSuggestionsClearRequested={this.onSuggestionsClearRequested}
           onSuggestionSelected={this.onSuggestionSelected}
