@@ -59,16 +59,98 @@ export default class RelationControl extends React.Component {
     classNameWrapper: PropTypes.string.isRequired,
     setActiveStyle: PropTypes.func.isRequired,
     setInactiveStyle: PropTypes.func.isRequired,
+    onSuggestionSelected: PropTypes.func.isRequired,
+    onSuggestionsFetchRequested: PropTypes.func.isRequired,
+    onSuggestionsClearRequested: PropTypes.func.isRequired,
+    getSuggestionValue: PropTypes.func.isRequired,
+    renderSuggestion: PropTypes.func.isRequired,
+    isValid: PropTypes.func.isRequired,
+    renderInputComponent: PropTypes.func.isRequired,
+    valueToFieldString: PropTypes.func.isRequired,
+    shouldRenderSuggestions: PropTypes.func.isRequired,
   };
 
   static defaultProps = {
     value: '',
+    renderInputComponent(props) {
+      return <input {...props} />;
+    },
+    valueToFieldString(value) {
+      return String(value);
+    },
+    shouldRenderSuggestions(value) {
+      return value.trim().length;
+    },
+    onSuggestionSelected(event, { suggestion }) {
+      const value = this.getSuggestionValue(suggestion);
+      this.props.onChange(value, {
+        [this.props.field.get('collection')]: { [value]: suggestion.data },
+      });
+    },
+    onSuggestionsFetchRequested({ value }) {
+      // if (value.length < 2) return;
+      const { field } = this.props;
+      const collection = field.get('collection');
+      const searchFields = field.get('searchFields').toJS();
+      this.props.query(this.controlID, collection, searchFields, value);
+    },
+    onSuggestionsClearRequested() {
+      this.props.clearSearch();
+    },
+    getSuggestionValue(suggestion) {
+      const { field } = this.props;
+      const valueField = field.get('valueField');
+      return suggestion.data[valueField];
+    },
+    renderSuggestion(suggestion) {
+      const { field } = this.props;
+      const valueField = field.get('displayFields') || field.get('valueField');
+      if (List.isList(valueField)) {
+        return (
+          <span>
+            {valueField.toJS().map(key => <span key={key}>{new String(suggestion.data[key])}{' '}</span>)}
+          </span>
+        );
+      }
+      return <span>{new String(suggestion.data[valueField])}</span>;
+    },
+    isValid() {
+      return true;
+    },
   };
 
   constructor(props, ctx) {
     super(props, ctx);
     this.controlID = uuid();
     this.didInitialSearch = false;
+
+    this.renderInputComponent = (...args) => (
+      this.props.renderInputComponent.apply(this, args)
+    );
+    this.valueToFieldString = (...args) => (
+      this.props.valueToFieldString.apply(this, args)
+    );
+    this.shouldRenderSuggestions = (...args) => (
+      this.props.shouldRenderSuggestions.apply(this, args)
+    );
+    this.onSuggestionSelected = (...args) => (
+      this.props.onSuggestionSelected.apply(this, args)
+    );
+    this.onSuggestionsFetchRequested = (...args) => (
+      this.props.onSuggestionsFetchRequested.apply(this, args)
+    );
+    this.onSuggestionsClearRequested = (...args) => (
+      this.props.onSuggestionsClearRequested.apply(this, args)
+    );
+    this.getSuggestionValue = (...args) => (
+      this.props.getSuggestionValue.apply(this, args)
+    );
+    this.renderSuggestion = (...args) => (
+      this.props.renderSuggestion.apply(this, args)
+    );
+    this.isValid = (...args) => (
+      this.props.isValid.apply(this, args)
+    );
   }
 
   componentDidMount() {
@@ -159,7 +241,7 @@ export default class RelationControl extends React.Component {
 
     const inputProps = {
       placeholder: '',
-      value: value || '',
+      value: this.valueToFieldString(value || ''),
       onChange: this.onChange,
       id: forID,
       className: classNameWrapper,
@@ -173,6 +255,8 @@ export default class RelationControl extends React.Component {
       <div>
         <Autosuggest
           suggestions={suggestions}
+          renderInputComponent={this.renderInputComponent}
+          shouldRenderSuggestions={this.shouldRenderSuggestions}
           onSuggestionsFetchRequested={this.onSuggestionsFetchRequested}
           onSuggestionsClearRequested={this.onSuggestionsClearRequested}
           onSuggestionSelected={this.onSuggestionSelected}
