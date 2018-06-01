@@ -2,7 +2,6 @@ import React from 'react';
 import bootstrap from './bootstrap';
 import registry from 'Lib/registry';
 import createReactClass from 'create-react-class';
-import * as search from 'Actions/search';
 
 /**
  * Load Netlify CMS automatically if `window.CMS_MANUAL_INIT` is set.
@@ -23,8 +22,4 @@ if (typeof window !== 'undefined') {
   window.h = window.h || React.createElement;
 }
 
-export {
-  registry as default,
-  bootstrap as init,
-  search,
-};
+export { registry as default, bootstrap as init };
