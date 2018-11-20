@@ -11,6 +11,10 @@ import { MarkdownControl, MarkdownPreview } from 'netlify-cms-widget-markdown/sr
 import { ListControl, ListPreview } from 'netlify-cms-widget-list/src';
 import { ObjectControl, ObjectPreview } from 'netlify-cms-widget-object/src';
 import { RelationControl, RelationPreview } from 'netlify-cms-widget-relation/src';
+import {
+  MultiselectControl,
+  MultiselectPreview
+} from 'netlify-cms-widget-multiselect/src';
 import { BooleanControl } from 'netlify-cms-widget-boolean/src';
 
 const { registerWidget } = cms;
@@ -27,4 +31,5 @@ registerWidget('datetime', DateTimeControl, DateTimePreview);
 registerWidget('select', SelectControl, SelectPreview);
 registerWidget('object', ObjectControl, ObjectPreview);
 registerWidget('relation', RelationControl, RelationPreview);
+registerWidget('multiselect', MultiselectControl, MultiselectPreview);
 registerWidget('boolean', BooleanControl);
