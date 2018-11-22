@@ -2,10 +2,12 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { WidgetPreviewContainer } from 'netlify-cms-ui-default';
 
-const RelationPreview = ({ value }) => <WidgetPreviewContainer>{value}</WidgetPreviewContainer>;
+const MultiselectPreview = ({ value }) => (
+  <WidgetPreviewContainer>{value}</WidgetPreviewContainer>
+);
 
-RelationPreview.propTypes = {
+MultiselectPreview.propTypes = {
   value: PropTypes.node,
 };
 
-export default RelationPreview;
+export default MultiselectPreview;
