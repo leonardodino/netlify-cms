@@ -2,36 +2,16 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import ImmutablePropTypes from 'react-immutable-proptypes';
 import AsyncSelect from 'react-select/lib/Async';
-import { find } from 'lodash';
-import { List, fromJS } from 'immutable';
+import { debounce, castArray } from 'lodash';
+import { List } from 'immutable';
 import { reactSelectStyles } from 'netlify-cms-ui-default';
 
-function optionToString(option) {
-  return option && option.value ? option.value : '';
-}
-
-function convertToOption(raw) {
-  if (typeof raw === 'string') {
-    return { label: raw, value: raw };
-  }
-  return Map.isMap(raw) ? raw.toJS() : raw;
-}
-
-function getSelectedValue({ value, options, isMultiple }) {
-  if (isMultiple) {
-    const selectedOptions = List.isList(value) ? value.toJS() : value;
-
-    if (!selectedOptions || !Array.isArray(selectedOptions)) {
-      return null;
-    }
-
-    return selectedOptions
-      .filter(i => options.find(o => o.value === (i.value || i)))
-      .map(convertToOption);
-  } else {
-    return find(options, ['value', value]) || null;
-  }
-}
+const toJS = item => (hasMethod('toJS')(item) ? item.toJS() : item);
+const apply = fn => item => (hasMethod('map')(item) ? item.map(fn) : fn(item));
+const hasMethod = method => object => object && typeof object[method] === 'function';
+const castString = option => (option && option.value) || option || '';
+const castOption = value => (typeof value === 'string' ? { value, label: value } : value);
+const getInitial = value => castArray(toJS(apply(castOption)(value)) || []);
 
 export default class RelationControl extends React.Component {
   static propTypes = {
@@ -43,76 +23,64 @@ export default class RelationControl extends React.Component {
     fetchID: PropTypes.string,
     query: PropTypes.func.isRequired,
     clearSearch: PropTypes.func.isRequired,
-    queryHits: PropTypes.oneOfType([PropTypes.array, PropTypes.object]),
+    queryHits: ImmutablePropTypes.map,
     classNameWrapper: PropTypes.string.isRequired,
     setActiveStyle: PropTypes.func.isRequired,
     setInactiveStyle: PropTypes.func.isRequired,
   };
 
-  handleChange = selectedOption => {
-    const { onChange } = this.props;
-
-    if (Array.isArray(selectedOption)) {
-      onChange(fromJS(selectedOption.map(optionToString)));
-    } else {
-      onChange(optionToString(selectedOption));
-    }
+  handleChange = raw => {
+    const value = apply(castString)(raw);
+    this.props.onChange(typeof value === 'string' ? value : List(value));
   };
 
-  loadOptions = (term, callback) => {
-    const { field, query } = this.props;
+  shouldComponentUpdate() {
+    return true;
+  }
+
+  entryMapper = ({ data } = {}) => {
+    const valueField = this.props.field.get('valueField');
+    const displayFields = this.props.field.get('displayFields', [valueField]);
+    return { value: data[valueField], label: displayFields.map(key => data[key]).join(' ') };
+  };
+
+  componentDidUpdate(prevProps) {
+    if (!this.callback) return;
+    if (
+      this.props.queryHits !== prevProps.queryHits &&
+      this.props.queryHits.get(this.props.forID)
+    ) {
+      const queryHits = this.props.queryHits.get(this.props.forID, []);
+      return this.callback(queryHits.map(this.entryMapper));
+    }
+  }
+
+  loadOptions = debounce((term, callback) => {
+    const { field, forID } = this.props;
     const collection = field.get('collection');
     const searchFields = field.get('searchFields').toJS();
-    const valueField = field.get('valueField');
-    const displayField = field.get('displayFields') || field.get('valueField');
 
-    query(this.props.forID, collection, searchFields, term).then(({ payload }) => {
-      const hits = term === '' ? payload.response.hits.slice(0, 20) : payload.response.hits;
-      const options = hits.map(i => {
-        if (List.isList(displayField)) {
-          return {
-            value: i.data[valueField],
-            label: displayField
-              .toJS()
-              .map(key => i.data[key])
-              .join(' '),
-          };
-        }
-        return { value: i.data[valueField], label: i.data[displayField] };
-      });
+    this.callback = value => {
+      callback(value);
+      this.callback = null;
+    };
+    this.props.query(forID, collection, searchFields, term);
+  }, 250);
 
-      callback(options);
-    });
+  handleMenuClose = () => {
+    this.props.clearSearch();
+    this.callback = null;
   };
 
   render() {
-    const {
-      value,
-      field,
-      forID,
-      classNameWrapper,
-      setActiveStyle,
-      setInactiveStyle,
-      queryHits,
-    } = this.props;
-    const valueField = field.get('valueField');
+    const { field, value, forID, classNameWrapper, setActiveStyle, setInactiveStyle } = this.props;
     const isMultiple = field.get('multiple', false);
     const isClearable = !field.get('required', true) || isMultiple;
 
-    const hits = queryHits.get(forID, []);
-
-    const options = [...hits.map(i => convertToOption(i.data[valueField]))];
-    const selectedValue = getSelectedValue({
-      options,
-      value,
-      isMultiple,
-    });
-
     return (
       <AsyncSelect
-        value={selectedValue}
         inputId={forID}
-        defaultOptions
+        defaultValue={getInitial(value)}
         onChange={this.handleChange}
         loadOptions={this.loadOptions}
         className={classNameWrapper}
@@ -121,7 +89,9 @@ export default class RelationControl extends React.Component {
         styles={reactSelectStyles}
         isMulti={isMultiple}
         isClearable={isClearable}
-        placeholder=""
+        openMenuOnClick={false}
+        onMenuClose={this.handleMenuClose}
+        cacheOptions={forID}
       />
     );
   }
